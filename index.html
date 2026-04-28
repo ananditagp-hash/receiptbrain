@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>ReceiptBrain – Smart Expense Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c26;--surface3:#242432;
+  --accent:#7B6FFF;--accent2:#FF6B6B;--accent3:#4ECDC4;--accent4:#FFD93D;
+  --text:#f0f0ff;--text2:#9898b8;--text3:#5a5a7a;
+  --border:rgba(255,255,255,0.07);--penny:#FFD93D;--green:#51CF66;--red:#FF6B6B;
+}
+[data-theme="light"]{--bg:#f5f5f0;--surface:#ffffff;--surface2:#f0f0ea;--surface3:#e8e8e0;--accent:#5a4fff;--text:#1a1a2e;--text2:#5a5a7a;--text3:#9898b8;--border:rgba(0,0,0,0.08);}
+[data-theme="midnight"]{--bg:#000814;--surface:#001233;--surface2:#023e8a;--surface3:#0077b6;--accent:#4CC9F0;--text:#caf0f8;--text2:#90e0ef;--text3:#48cae4;--border:rgba(76,201,240,0.15);}
+[data-theme="forest"]{--bg:#0a1a0f;--surface:#132218;--surface2:#1e3a26;--surface3:#2d5a3d;--accent:#51CF66;--accent4:#8bc34a;--text:#d8f5e0;--text2:#8fcf9e;--text3:#4a9960;--border:rgba(81,207,102,0.12);}
+[data-theme="sunset"]{--bg:#1a0a00;--surface:#2a1200;--surface2:#3d1e00;--surface3:#5c2f00;--accent:#FF8C42;--accent4:#FFD93D;--text:#fff0e0;--text2:#ffb380;--text3:#ff8c42;--border:rgba(255,140,66,0.15);}
+
+html,body{height:100%;overflow:hidden;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;height:100vh;transition:background 0.4s,color 0.3s;}
+
+/* TOP BAR */
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 8px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--text);}
+.logo span{color:var(--accent);}
+.theme-pills{display:flex;gap:7px;align-items:center;}
+.theme-pill{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:border-color 0.2s,transform 0.15s;flex-shrink:0;}
+.theme-pill:hover{transform:scale(1.15);}
+.theme-pill.active{border-color:var(--text);}
+.t-dark{background:#13131a;}
+.t-light{background:#f5f5f0;border:1.5px solid #ccc;}
+.t-midnight{background:conic-gradient(#000814,#0077b6);}
+.t-forest{background:conic-gradient(#0a1a0f,#51CF66);}
+.t-sunset{background:conic-gradient(#1a0a00,#FF8C42);}
+
+/* MAIN LAYOUT */
+.app-body{display:flex;flex-direction:column;flex:1;overflow:hidden;position:relative;}
+
+/* SCREENS */
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
+.screen.active{display:flex;}
+.scroll-content{flex:1;overflow-y:auto;padding:16px 20px 90px;display:flex;flex-direction:column;gap:16px;}
+.scroll-content::-webkit-scrollbar{width:4px;}
+.scroll-content::-webkit-scrollbar-track{background:transparent;}
+.scroll-content::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+
+/* DASHBOARD */
+.dashboard-header{padding:16px 20px 0;background:var(--surface);flex-shrink:0;}
+.penny-greeting{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.penny-avatar{width:50px;height:50px;background:var(--penny);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;cursor:pointer;animation:penny-bob 3s ease-in-out infinite;transition:transform 0.2s;}
+.penny-avatar:hover{transform:scale(1.1);}
+@keyframes penny-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.penny-bubble{background:var(--surface2);border:1px solid var(--border);border-radius:12px 12px 12px 0;padding:10px 14px;font-size:13px;color:var(--text);line-height:1.55;flex:1;}
+.penny-bubble strong{color:var(--accent);}
+.glance-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.glance-card{background:var(--surface2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);}
+.glance-label{font-size:10px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
+.glance-value{font-size:15px;font-weight:700;color:var(--text);font-family:'Syne',sans-serif;}
+.glance-value.warn{color:var(--red);}
+.glance-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+
+.section-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.chart-card{background:var(--surface);border-radius:14px;padding:16px;border:1px solid var(--border);}
+.chart-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px;}
+
+/* DONUT */
+.donut-wrap{display:flex;align-items:center;gap:16px;}
+.legend{display:flex;flex-direction:column;gap:8px;flex:1;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px;}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.legend-label{color:var(--text2);flex:1;}
+.legend-amt{color:var(--text);font-weight:500;}
+
+/* BAR CHART */
+.bar-chart{display:flex;flex-direction:column;gap:10px;}
+.bar-row{display:flex;align-items:center;gap:10px;}
+.bar-label{font-size:12px;color:var(--text2);width:36px;flex-shrink:0;}
+.bar-track{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;}
+.bar-amt{font-size:12px;color:var(--text);font-weight:500;width:52px;text-align:right;}
+
+/* SUBS */
+.subs-card{background:var(--surface);border-radius:14px;padding:16px;border:1px solid var(--border);}
+.sub-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.sub-item:last-child{border-bottom:none;}
+.sub-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.sub-info{flex:1;}
+.sub-name{font-size:13px;font-weight:500;color:var(--text);}
+.sub-date{font-size:11px;color:var(--text3);margin-top:1px;}
+.sub-badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;}
+.badge-warn{background:rgba(255,107,107,0.15);color:var(--red);}
+.badge-ok{background:rgba(81,207,102,0.15);color:var(--green);}
+.sub-amt{font-size:14px;font-weight:700;color:var(--text);font-family:'Syne',sans-serif;}
+
+.insight-card{background:linear-gradient(135deg,rgba(123,111,255,0.12),rgba(78,205,196,0.08));border:1px solid rgba(123,111,255,0.25);border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;}
+.insight-icon{font-size:20px;flex-shrink:0;}
+.insight-text{font-size:13px;color:var(--text);line-height:1.6;}
+.insight-text strong{color:var(--accent);}
+
+/* TRANSACTIONS */
+.txn-filters{padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:8px;overflow-x:auto;flex-shrink:0;}
+.txn-filters::-webkit-scrollbar{display:none;}
+.filter-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;white-space:nowrap;transition:all 0.2s;flex-shrink:0;}
+.filter-chip.active{background:var(--accent);color:white;border-color:var(--accent);}
+.txn-group{margin-bottom:8px;}
+.txn-date-header{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.txn-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.txn-item:last-child{border-bottom:none;}
+.txn-cat-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.txn-info{flex:1;min-width:0;}
+.txn-name{font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.txn-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.txn-source-badge{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface3);color:var(--text3);}
+.txn-amt{font-size:15px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);text-align:right;flex-shrink:0;}
+.txn-amt.debit{color:var(--red);}
+
+/* QUICK LOG */
+.quick-log-screen{padding:20px;display:flex;flex-direction:column;gap:14px;flex:1;overflow-y:auto;}
+.quick-log-screen::-webkit-scrollbar{width:4px;}
+.quick-log-screen::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+.ql-header{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);}
+.ql-sub{font-size:13px;color:var(--text3);}
+.ql-amount-display{background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);text-align:center;}
+.ql-currency{font-size:28px;color:var(--text3);font-family:'Syne',sans-serif;}
+.ql-amount-input{width:100%;background:none;border:none;outline:none;font-size:48px;font-weight:800;color:var(--text);text-align:center;font-family:'Syne',sans-serif;caret-color:var(--accent);}
+.ql-amount-input::placeholder{color:var(--text3);}
+.ql-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.ql-cat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 4px;text-align:center;cursor:pointer;transition:all 0.2s;}
+.ql-cat.selected{border-color:var(--accent);background:rgba(123,111,255,0.12);}
+.ql-cat:hover{border-color:var(--accent);}
+.ql-cat-icon{font-size:20px;display:block;margin-bottom:4px;}
+.ql-cat-label{font-size:10px;color:var(--text2);}
+.ql-note{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;}
+.ql-note input{background:none;border:none;outline:none;flex:1;font-size:14px;color:var(--text);font-family:'DM Sans',sans-serif;}
+.ql-note input::placeholder{color:var(--text3);}
+.voice-btn{display:flex;align-items:center;gap:8px;background:rgba(123,111,255,0.1);border:1px dashed rgba(123,111,255,0.4);border-radius:12px;padding:14px 16px;color:var(--accent);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.voice-btn:hover{background:rgba(123,111,255,0.18);}
+.voice-icon{font-size:20px;}
+@keyframes voice-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.voice-listening .voice-icon{animation:voice-pulse 1s infinite;}
+.log-btn{background:var(--accent);color:white;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;transition:all 0.2s;letter-spacing:0.5px;width:100%;}
+.log-btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
+.log-btn:active{transform:scale(0.98);}
+
+/* INSIGHTS */
+.insights-content{padding:16px 20px 90px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;flex:1;}
+.personality-card{background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);display:flex;align-items:center;gap:16px;}
+.personality-icon{font-size:48px;flex-shrink:0;}
+.personality-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px;}
+.personality-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.personality-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+.trend-card{background:var(--surface);border-radius:14px;padding:16px;border:1px solid var(--border);}
+.trend-weeks{display:flex;gap:8px;margin-top:12px;}
+.trend-week{flex:1;}
+.trend-bar-wrap{height:60px;display:flex;align-items:flex-end;margin-bottom:4px;}
+.trend-bar{width:100%;border-radius:4px 4px 0 0;min-height:6px;}
+.trend-week-label{font-size:10px;color:var(--text3);text-align:center;}
+.trend-week-amt{font-size:11px;color:var(--text);text-align:center;font-weight:500;}
+.sub-health{background:var(--surface);border-radius:14px;padding:16px;border:1px solid var(--border);}
+.health-score-wrap{display:flex;align-items:center;gap:16px;margin:12px 0;}
+.score-ring{position:relative;width:70px;height:70px;flex-shrink:0;}
+.score-number{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent3);}
+.score-label{font-size:12px;color:var(--text2);line-height:1.6;}
+.score-label strong{color:var(--text);}
+
+/* FAB */
+.fab{position:fixed;bottom:68px;right:20px;width:54px;height:54px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(123,111,255,0.4);transition:transform 0.2s,box-shadow 0.2s;z-index:100;color:white;font-weight:300;line-height:1;user-select:none;}
+.fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(123,111,255,0.55);}
+.fab:active{transform:scale(0.95);}
+
+/* BOTTOM NAV */
+.nav-bottom{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:99;}
+.nav-item{flex:1;padding:10px 4px 10px;text-align:center;font-size:10px;color:var(--text3);cursor:pointer;transition:color 0.2s;font-family:'DM Sans',sans-serif;font-weight:500;user-select:none;}
+.nav-item.active{color:var(--accent);}
+.nav-item-icon{font-size:20px;display:block;margin-bottom:2px;}
+
+/* PENNY MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.penny-modal{background:var(--surface);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.34,1.1,0.64,1);position:relative;}
+.modal-overlay.open .penny-modal{transform:translateY(0);}
+.modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--text3);margin-bottom:18px;}
+.modal-close{position:absolute;top:18px;right:20px;font-size:20px;cursor:pointer;color:var(--text3);line-height:1;}
+.penny-outfits{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+.outfit-item{background:var(--surface2);border-radius:14px;padding:14px 10px 12px;text-align:center;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;}
+.outfit-item.unlocked{border-color:var(--penny);}
+.outfit-item.locked{opacity:0.5;cursor:default;}
+.outfit-penny{font-size:30px;margin-bottom:6px;}
+.outfit-name{font-size:11px;color:var(--text2);}
+.outfit-req{font-size:10px;color:var(--text3);margin-top:2px;}
+.penny-say{background:rgba(255,217,61,0.1);border:1px solid rgba(255,217,61,0.25);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text);line-height:1.6;}
+
+/* TOAST */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--green);color:white;padding:10px 22px;border-radius:24px;font-size:14px;font-weight:600;z-index:999;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* UPLOAD SCREEN */
+.upload-screen{padding:20px;display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;}
+.upload-zone{border:2px dashed rgba(123,111,255,0.4);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(123,111,255,0.05);}
+.upload-zone:hover{border-color:var(--accent);background:rgba(123,111,255,0.1);}
+.upload-icon{font-size:48px;margin-bottom:12px;}
+.upload-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.upload-sub{font-size:13px;color:var(--text3);}
+.ocr-result{background:var(--surface);border-radius:14px;padding:16px;border:1px solid var(--border);display:none;}
+.ocr-result.visible{display:block;}
+.ocr-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+.ocr-field{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.ocr-field:last-child{border-bottom:none;}
+.ocr-key{color:var(--text2);}
+.ocr-val{color:var(--text);font-weight:500;}
+.ocr-val.accent{color:var(--accent);}
+.confirm-btn{background:var(--green);color:white;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;width:100%;transition:all 0.2s;margin-top:8px;}
+.confirm-btn:hover{filter:brightness(1.08);}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">Receipt<span>Brain</span></div>
+  <div class="theme-pills">
+    <div class="theme-pill t-dark active" onclick="setTheme('dark',this)" title="Dark"></div>
+    <div class="theme-pill t-light" onclick="setTheme('light',this)" title="Light"></div>
+    <div class="theme-pill t-midnight" onclick="setTheme('midnight',this)" title="Midnight Blue"></div>
+    <div class="theme-pill t-forest" onclick="setTheme('forest',this)" title="Forest Green"></div>
+    <div class="theme-pill t-sunset" onclick="setTheme('sunset',this)" title="Sunset Orange"></div>
+  </div>
+</div>
+
+<div class="app-body">
+
+  <!-- ===== DASHBOARD ===== -->
+  <div class="screen active" id="screen-home">
+    <div class="dashboard-header">
+      <div class="penny-greeting">
+        <div class="penny-avatar" onclick="openPennyModal()" id="penny-main" title="Tap to open Penny's wardrobe">🪙</div>
+        <div class="penny-bubble" id="penny-msg">Good evening! You've spent <strong>₹2,840</strong> today — 18% below your daily average. Penny's proud! 🎉</div>
+      </div>
+    </div>
+    <div class="glance-strip">
+      <div class="glance-card">
+        <div class="glance-label">Today</div>
+        <div class="glance-value warn">₹2,840</div>
+        <div class="glance-sub">↑12% vs avg</div>
+      </div>
+      <div class="glance-card">
+        <div class="glance-label">Top Category</div>
+        <div class="glance-value">🍔 Food</div>
+        <div class="glance-sub">₹1,200 spent</div>
+      </div>
+      <div class="glance-card">
+        <div class="glance-label">This Month</div>
+        <div class="glance-value">₹18.4k</div>
+        <div class="glance-sub">of ₹25k budget</div>
+      </div>
+    </div>
+    <div class="scroll-content">
+      <!-- Category donut -->
+      <div>
+        <div class="section-title">Spending by category</div>
+        <div class="chart-card">
+          <div class="donut-wrap">
+            <svg width="110" height="110" viewBox="0 0 110 110" style="flex-shrink:0">
+              <circle cx="55" cy="55" r="40" fill="none" stroke="var(--surface3)" stroke-width="16"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#7B6FFF" stroke-width="16" stroke-dasharray="100 151" stroke-dashoffset="38" stroke-linecap="round"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#FF6B6B" stroke-width="16" stroke-dasharray="45 206" stroke-dashoffset="-62" stroke-linecap="round"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#4ECDC4" stroke-width="16" stroke-dasharray="30 221" stroke-dashoffset="-107" stroke-linecap="round"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#FFD93D" stroke-width="16" stroke-dasharray="20 231" stroke-dashoffset="-137" stroke-linecap="round"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#51CF66" stroke-width="16" stroke-dasharray="6 245" stroke-dashoffset="-157" stroke-linecap="round"/>
+              <text x="55" y="51" text-anchor="middle" font-size="10" fill="var(--text2)" font-family="DM Sans,sans-serif">total</text>
+              <text x="55" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)" font-family="Syne,sans-serif">₹48.2k</text>
+            </svg>
+            <div class="legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#7B6FFF"></div><span class="legend-label">Food & Delivery</span><span class="legend-amt">₹12.8k</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#FF6B6B"></div><span class="legend-label">Shopping</span><span class="legend-amt">₹8.4k</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#4ECDC4"></div><span class="legend-label">Subscriptions</span><span class="legend-amt">₹5.2k</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#FFD93D"></div><span class="legend-label">Transport</span><span class="legend-amt">₹3.8k</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#51CF66"></div><span class="legend-label">Utilities</span><span class="legend-amt">₹1.2k</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly bar chart -->
+      <div>
+        <div class="section-title">Weekly spending</div>
+        <div class="chart-card">
+          <div class="bar-chart">
+            <div class="bar-row"><span class="bar-label">Mon</span><div class="bar-track"><div class="bar-fill" style="width:45%;background:#7B6FFF"></div></div><span class="bar-amt">₹1,200</span></div>
+            <div class="bar-row"><span class="bar-label">Tue</span><div class="bar-track"><div class="bar-fill" style="width:78%;background:#7B6FFF"></div></div><span class="bar-amt">₹2,100</span></div>
+            <div class="bar-row"><span class="bar-label">Wed</span><div class="bar-track"><div class="bar-fill" style="width:30%;background:#7B6FFF"></div></div><span class="bar-amt">₹820</span></div>
+            <div class="bar-row"><span class="bar-label">Thu</span><div class="bar-track"><div class="bar-fill" style="width:90%;background:#FF6B6B"></div></div><span class="bar-amt">₹2,450</span></div>
+            <div class="bar-row"><span class="bar-label">Fri</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#FF6B6B"></div></div><span class="bar-amt">₹2,840</span></div>
+            <div class="bar-row"><span class="bar-label">Sat</span><div class="bar-track"><div class="bar-fill" style="width:20%;background:#4ECDC4"></div></div><span class="bar-amt">₹540</span></div>
+            <div class="bar-row"><span class="bar-label">Sun</span><div class="bar-track"><div class="bar-fill" style="width:10%;background:#4ECDC4"></div></div><span class="bar-amt">₹280</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Forgotten subs -->
+      <div>
+        <div class="section-title">⚠️ Forgotten subscriptions</div>
+        <div class="subs-card">
+          <div class="sub-item">
+            <div class="sub-icon" style="background:rgba(255,107,107,0.12)">🎬</div>
+            <div class="sub-info"><div class="sub-name">Sony LIV Premium</div><div class="sub-date">Renews Apr 30 · Every month</div></div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="sub-badge badge-warn">Unused 3mo</div><div class="sub-amt">₹299</div></div>
+          </div>
+          <div class="sub-item">
+            <div class="sub-icon" style="background:rgba(78,205,196,0.12)">🎵</div>
+            <div class="sub-info"><div class="sub-name">Spotify Premium</div><div class="sub-date">Renews May 5 · Every month</div></div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="sub-badge badge-ok">Active</div><div class="sub-amt">₹119</div></div>
+          </div>
+          <div class="sub-item">
+            <div class="sub-icon" style="background:rgba(123,111,255,0.12)">☁️</div>
+            <div class="sub-info"><div class="sub-name">Google One 100GB</div><div class="sub-date">Renews May 12 · Every month</div></div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="sub-badge badge-ok">Active</div><div class="sub-amt">₹130</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">💡</div>
+        <div class="insight-text">You tend to overspend on <strong>Thursdays and Fridays</strong>. Last 4 weeks, your spending spikes 65% on these days — usually food delivery. Try prepping meals on Wednesday!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TRANSACTIONS ===== -->
+  <div class="screen" id="screen-txns">
+    <div class="txn-filters">
+      <div class="filter-chip active" onclick="filterChip(this)">All</div>
+      <div class="filter-chip" onclick="filterChip(this)">📷 Screenshot</div>
+      <div class="filter-chip" onclick="filterChip(this)">📱 SMS</div>
+      <div class="filter-chip" onclick="filterChip(this)">✏️ Manual</div>
+      <div class="filter-chip" onclick="filterChip(this)">🍔 Food</div>
+      <div class="filter-chip" onclick="filterChip(this)">🛍️ Shopping</div>
+      <div class="filter-chip" onclick="filterChip(this)">🚗 Transport</div>
+    </div>
+    <div class="scroll-content" style="padding-top:12px">
+      <div class="txn-group" id="txn-list">
+        <div class="txn-date-header">Today · ₹2,840</div>
+        <div class="txn-item"><div class="txn-cat-icon" style="background:rgba(255,107,107,0.12)">🍕</div><div class="txn-info"><div class="txn-name">Swiggy — Domino's</div><div class="txn-meta">Food &amp; Delivery · <span class="txn-source-badge">📷 Screenshot</span></div></div><div class="txn-amt debit">−₹649</div></div>
+        <div class="txn-item"><div class="txn-cat-icon" style="background:rgba(255,217,61,0.12)">🛺</div><div class="txn-info"><div class="txn-name">Ola Auto</div><div class="txn-meta">Transport · <span class="txn-source-badge">📱 SMS</span></div></div><div class="txn-amt debit">−₹85</div></div>
+        <div class="txn-item"><div class="txn-cat-icon" style="background:rgba(123,111,255,0.12)">☕</div><div class="txn-info"><div class="txn-name">Blue Tokai Coffee</div><div class="txn-meta">Food &amp; Delivery · <span class="txn-source-badge">✏️ Manual</span></div></div><div class="txn-amt debit">−₹320</div></div>
+        <div class="txn-item"><div class="txn-cat-icon" style="background:rgba(78,205,196,0.12)">🛍️</div><div class="txn-info"><div class="txn-name">Amazon — Headphones</div><div class="txn-meta">Shopping · <span class="txn-source-badge">📷 Screenshot</span></div></div><div class="txn-amt debit">−₹1,599</div></div>
+        <div class="txn-item"><div class="txn-cat-icon" style="background:rgba(81,207,102,0.12)">⚡</div><div class="txn-info"><div class="txn-name">Electricity Bill</div><div class="txn-meta">Utilities · <span class="txn-source-badge">📱 SMS</span></div></div><div class="txn-amt debit">−₹187</div></div>
+        <div class="txn-date-header" style="margin-top:16px">Yesterday · ₹1,240</div>
+        <div class="txn-item"><div class="txn-cat-icon" style="background:rgba(255,107,107,0.12)">🍜</div><div class="txn-info"><div class="txn-name">Zomato — Biryani Blues</div><div class="txn-meta">Food &amp; Delivery · <span class="txn-source-badge">📷 Screenshot</span></div></div><div class="txn-amt debit">−₹480</div></div>
+        <div class="txn-item"><div class="txn-cat-icon" style="background:rgba(123,111,255,0.12)">🎬</div><div class="txn-info"><div class="txn-name">PVR Cinemas</div><div class="txn-meta">Entertainment · <span class="txn-source-badge">📱 SMS</span></div></div><div class="txn-amt debit">−₹760</div></div>
+        <div class="txn-date-header" style="margin-top:16px">Apr 24 · ₹3,120</div>
+        <div class="txn-item"><div class="txn-cat-icon" style="background:rgba(255,217,61,0.12)">🚕</div><div class="txn-info"><div class="txn-name">Uber — Airport Drop</div><div class="txn-meta">Transport · <span class="txn-source-badge">📱 SMS</span></div></div><div class="txn-amt debit">−₹680</div></div>
+        <div class="txn-item"><div class="txn-cat-icon" style="background:rgba(255,107,107,0.12)">🛒</div><div class="txn-info"><div class="txn-name">BigBasket Weekly</div><div class="txn-meta">Shopping · <span class="txn-source-badge">📷 Screenshot</span></div></div><div class="txn-amt debit">−₹2,440</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== QUICK LOG ===== -->
+  <div class="screen" id="screen-log">
+    <div class="quick-log-screen">
+      <div>
+        <div class="ql-header">Quick Log ⚡</div>
+        <div class="ql-sub">Log a spend in under 5 seconds</div>
+      </div>
+      <div class="ql-amount-display">
+        <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+          <span class="ql-currency">₹</span>
+          <input class="ql-amount-input" id="ql-amt" type="number" placeholder="0" min="0" inputmode="decimal"/>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">tap and enter amount</div>
+      </div>
+      <div>
+        <div class="section-title" style="margin-bottom:10px">Category</div>
+        <div class="ql-cats" id="ql-cats">
+          <div class="ql-cat selected" onclick="selectCat(this,'Food')"><span class="ql-cat-icon">🍔</span><span class="ql-cat-label">Food</span></div>
+          <div class="ql-cat" onclick="selectCat(this,'Transport')"><span class="ql-cat-icon">🛺</span><span class="ql-cat-label">Transport</span></div>
+          <div class="ql-cat" onclick="selectCat(this,'Shopping')"><span class="ql-cat-icon">🛍️</span><span class="ql-cat-label">Shopping</span></div>
+          <div class="ql-cat" onclick="selectCat(this,'Subscriptions')"><span class="ql-cat-icon">📱</span><span class="ql-cat-label">Subs</span></div>
+          <div class="ql-cat" onclick="selectCat(this,'Utilities')"><span class="ql-cat-icon">⚡</span><span class="ql-cat-label">Utilities</span></div>
+          <div class="ql-cat" onclick="selectCat(this,'Entertainment')"><span class="ql-cat-icon">🎬</span><span class="ql-cat-label">Entertain</span></div>
+          <div class="ql-cat" onclick="selectCat(this,'Health')"><span class="ql-cat-icon">💊</span><span class="ql-cat-label">Health</span></div>
+          <div class="ql-cat" onclick="selectCat(this,'Other')"><span class="ql-cat-icon">📦</span><span class="ql-cat-label">Other</span></div>
+        </div>
+      </div>
+      <div class="ql-note">
+        <span style="font-size:16px">✏️</span>
+        <input type="text" id="ql-note" placeholder="Note (optional) — e.g. Lunch at college canteen" maxlength="80"/>
+      </div>
+      <div class="voice-btn" id="voice-btn" onclick="triggerVoice()">
+        <span class="voice-icon" id="voice-icon">🎙️</span>
+        <span id="voice-text">Say it — "Spent 200 on auto rickshaw"</span>
+      </div>
+      <button class="log-btn" onclick="logEntry()">Log Spend →</button>
+    </div>
+  </div>
+
+  <!-- ===== UPLOAD / OCR ===== -->
+  <div class="screen" id="screen-upload">
+    <div class="upload-screen">
+      <div>
+        <div class="ql-header">Scan Receipt 📷</div>
+        <div class="ql-sub">Upload a screenshot or payment confirmation</div>
+      </div>
+      <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+        <div class="upload-icon">🧾</div>
+        <div class="upload-title">Tap to upload screenshot</div>
+        <div class="upload-sub">Supports Swiggy, Zomato, Amazon, UPI confirmations, bank SMS screenshots</div>
+        <input type="file" id="file-input" accept="image/*" style="display:none" onchange="simulateOCR(this)"/>
+      </div>
+      <div class="ocr-result" id="ocr-result">
+        <div class="ocr-title">🔍 Extracted by ReceiptBrain</div>
+        <div class="ocr-field"><span class="ocr-key">Merchant</span><span class="ocr-val" id="ocr-merchant">Swiggy — Burger King</span></div>
+        <div class="ocr-field"><span class="ocr-key">Amount</span><span class="ocr-val accent" id="ocr-amount">₹349</span></div>
+        <div class="ocr-field"><span class="ocr-key">Date</span><span class="ocr-val" id="ocr-date">Apr 26, 2026</span></div>
+        <div class="ocr-field"><span class="ocr-key">Payment</span><span class="ocr-val">GPay UPI</span></div>
+        <div class="ocr-field"><span class="ocr-key">Category</span><span class="ocr-val accent">🍔 Food &amp; Delivery</span></div>
+        <div class="ocr-field"><span class="ocr-key">Source</span><span class="ocr-val">📷 Screenshot</span></div>
+        <button class="confirm-btn" onclick="confirmOCR()">✓ Add to Ledger</button>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title" style="margin-bottom:10px">Also supports SMS paste</div>
+        <div style="background:var(--surface2);border-radius:10px;padding:12px;font-size:12px;color:var(--text2);font-family:monospace;line-height:1.8;border:1px solid var(--border)">
+          Dear Customer, INR 499.00 debited from A/c XX4821 on 26-04-26. Info: UPI/Swiggy/Payment. Avl Bal: INR 12,340.50
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text3)">↑ Paste your bank SMS above and ReceiptBrain auto-extracts the transaction</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== INSIGHTS ===== -->
+  <div class="screen" id="screen-insights">
+    <div class="insights-content">
+      <div class="personality-card">
+        <div class="personality-icon">🌙</div>
+        <div>
+          <div class="personality-label">Your spending personality</div>
+          <div class="personality-title">Impulsive Weekender</div>
+          <div class="personality-desc">Great at saving on weekdays, but weekend evenings catch you off-guard. Your Fri–Sat spends are 2.4× higher than Mon–Wed.</div>
+        </div>
+      </div>
+      <div class="trend-card">
+        <div class="chart-title">Month over month</div>
+        <div class="trend-weeks">
+          <div class="trend-week"><div class="trend-bar-wrap"><div class="trend-bar" style="height:42%;background:rgba(123,111,255,0.4)"></div></div><div class="trend-week-label">Jan</div><div class="trend-week-amt">₹32k</div></div>
+          <div class="trend-week"><div class="trend-bar-wrap"><div class="trend-bar" style="height:55%;background:rgba(123,111,255,0.55)"></div></div><div class="trend-week-label">Feb</div><div class="trend-week-amt">₹41k</div></div>
+          <div class="trend-week"><div class="trend-bar-wrap"><div class="trend-bar" style="height:68%;background:rgba(123,111,255,0.7)"></div></div><div class="trend-week-label">Mar</div><div class="trend-week-amt">₹51k</div></div>
+          <div class="trend-week"><div class="trend-bar-wrap"><div class="trend-bar" style="height:85%;background:#7B6FFF"></div></div><div class="trend-week-label">Apr</div><div class="trend-week-amt">₹48k</div></div>
+        </div>
+      </div>
+      <div class="sub-health">
+        <div class="chart-title">Subscription health score</div>
+        <div class="health-score-wrap">
+          <div class="score-ring">
+            <svg width="70" height="70" viewBox="0 0 70 70">
+              <circle cx="35" cy="35" r="28" fill="none" stroke="var(--surface3)" stroke-width="8"/>
+              <circle cx="35" cy="35" r="28" fill="none" stroke="#4ECDC4" stroke-width="8" stroke-dasharray="119 176" stroke-dashoffset="44" stroke-linecap="round"/>
+            </svg>
+            <div class="score-number">68</div>
+          </div>
+          <div class="score-label"><strong>3 active subscriptions</strong>, 1 unused. Cancelling Sony LIV saves <strong>₹3,588/year</strong>.</div>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🍔</div>
+        <div class="insight-text">Food delivery is your <strong>biggest category</strong> at ₹12,800 this month — 60% more than last month. Cooking twice a week could save ~₹4,000.</div>
+      </div>
+      <div class="insight-card" style="background:linear-gradient(135deg,rgba(255,217,61,0.1),rgba(255,107,107,0.06));border-color:rgba(255,217,61,0.2)">
+        <div class="insight-icon">📅</div>
+        <div class="insight-text">Your <strong>UPI spends peak on 25th–27th</strong> of every month. Post-paycheck excitement? Want to set a spending pause?</div>
+      </div>
+      <div class="insight-card" style="background:linear-gradient(135deg,rgba(78,205,196,0.1),rgba(81,207,102,0.06));border-color:rgba(78,205,196,0.2)">
+        <div class="insight-icon">🎉</div>
+        <div class="insight-text">You saved <strong>₹6,600 more</strong> this month vs last! That's your best month in 2026. Penny is doing a happy dance. 💃</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app-body -->
+
+<!-- PENNY MODAL -->
+<div class="modal-overlay" id="penny-modal" onclick="closePennyModal(event)">
+  <div class="penny-modal">
+    <div class="modal-close" onclick="closePennyModal()">✕</div>
+    <div class="modal-title">Penny's Wardrobe 🪙</div>
+    <div class="modal-sub">Unlock outfits by hitting savings milestones</div>
+    <div class="penny-outfits">
+      <div class="outfit-item unlocked" onclick="setPennyOutfit('🪙')"><div class="outfit-penny">🪙</div><div class="outfit-name">Default Coin</div><div class="outfit-req" style="color:var(--green)">✓ Unlocked</div></div>
+      <div class="outfit-item unlocked" onclick="setPennyOutfit('👑')"><div class="outfit-penny">👑</div><div class="outfit-name">Budget King</div><div class="outfit-req" style="color:var(--green)">✓ Unlocked</div></div>
+      <div class="outfit-item locked"><div class="outfit-penny">🌟</div><div class="outfit-name">Saver Star</div><div class="outfit-req">Save ₹5k/month</div></div>
+      <div class="outfit-item locked"><div class="outfit-penny">🧊</div><div class="outfit-name">Cool Spender</div><div class="outfit-req">30-day streak</div></div>
+      <div class="outfit-item locked"><div class="outfit-penny">🎩</div><div class="outfit-name">Finance Pro</div><div class="outfit-req">Cancel 2 subs</div></div>
+      <div class="outfit-item locked"><div class="outfit-penny">🌈</div><div class="outfit-name">Rainbow</div><div class="outfit-req">All milestones</div></div>
+    </div>
+    <div class="penny-say">"I'm always rooting for you! Hit your first ₹5,000 savings goal and I'll put on my Saver Star outfit. Deal? 😄"</div>
+  </div>
+</div>
+
+<!-- FAB -->
+<div class="fab" onclick="goTo('log')" title="Quick Log">+</div>
+
+<!-- BOTTOM NAV -->
+<div class="nav-bottom">
+  <div class="nav-item active" id="nav-home" onclick="goTo('home')"><span class="nav-item-icon">🏠</span>Home</div>
+  <div class="nav-item" id="nav-txns" onclick="goTo('txns')"><span class="nav-item-icon">📋</span>Ledger</div>
+  <div class="nav-item" id="nav-upload" onclick="goTo('upload')"><span class="nav-item-icon">📷</span>Scan</div>
+  <div class="nav-item" id="nav-log" onclick="goTo('log')"><span class="nav-item-icon">✏️</span>Quick Log</div>
+  <div class="nav-item" id="nav-insights" onclick="goTo('insights')"><span class="nav-item-icon">💡</span>Insights</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Logged!</div>
+
+<script>
+var selectedCat = 'Food';
+var transactions = [];
+
+var pennyMsgs = {
+  dark:     "Good evening! You've spent <strong>₹2,840</strong> today — 18% below your daily average. Penny's proud! 🎉",
+  light:    "Hey there! ☀️ Great day to review your budget. You've spent <strong>₹2,840</strong> today.",
+  midnight: "🌙 Night owl mode! You've spent <strong>₹2,840</strong> today. Sleep tight, spend right!",
+  forest:   "🌿 Staying grounded! You've spent <strong>₹2,840</strong> today. Nature is free!",
+  sunset:   "🌅 Golden hour! You've spent <strong>₹2,840</strong> today. Make the evening count!"
+};
+
+function setTheme(t, el) {
+  document.body.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme-pill').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active');
+  var bubble = document.getElementById('penny-msg');
+  bubble.style.opacity = '0';
+  setTimeout(function(){
+    bubble.innerHTML = pennyMsgs[t] || pennyMsgs.dark;
+    bubble.style.transition = 'opacity 0.3s';
+    bubble.style.opacity = '1';
+  }, 250);
+}
+
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  document.getElementById('screen-' + screen).classList.add('active');
+  var navEl = document.getElementById('nav-' + screen);
+  if (navEl) navEl.classList.add('active');
+}
+
+function selectCat(el, cat) {
+  document.querySelectorAll('.ql-cat').forEach(function(c){c.classList.remove('selected');});
+  el.classList.add('selected');
+  selectedCat = cat;
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');}, 2500);
+}
+
+function logEntry() {
+  var amt = document.getElementById('ql-amt').value;
+  if (!amt || parseFloat(amt) <= 0) {
+    document.getElementById('ql-amt').focus();
+    showToast('Please enter an amount first!');
+    return;
+  }
+  var note = document.getElementById('ql-note').value;
+  var today = new Date().toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+  var txnHTML = '<div class="txn-item"><div class="txn-cat-icon" style="background:rgba(123,111,255,0.12)">✏️</div><div class="txn-info"><div class="txn-name">' + (note || selectedCat + ' spend') + '</div><div class="txn-meta">' + selectedCat + ' · <span class="txn-source-badge">✏️ Manual</span></div></div><div class="txn-amt debit">−₹' + parseFloat(amt).toLocaleString('en-IN') + '</div></div>';
+  var list = document.getElementById('txn-list');
+  var firstHeader = list.querySelector('.txn-date-header');
+  if (firstHeader) {
+    firstHeader.insertAdjacentHTML('afterend', txnHTML);
+  } else {
+    list.innerHTML = '<div class="txn-date-header">Today</div>' + txnHTML + list.innerHTML;
+  }
+  showToast('✓ ₹' + parseFloat(amt).toLocaleString('en-IN') + ' in ' + selectedCat + ' logged!');
+  var bubble = document.getElementById('penny-msg');
+  bubble.style.opacity = '0';
+  setTimeout(function(){
+    bubble.innerHTML = 'You just logged <strong>₹' + parseFloat(amt).toLocaleString('en-IN') + '</strong> in ' + selectedCat + '. Every entry helps me understand your patterns! 📊';
+    bubble.style.transition = 'opacity 0.3s';
+    bubble.style.opacity = '1';
+  }, 250);
+  document.getElementById('ql-amt').value = '';
+  document.getElementById('ql-note').value = '';
+  setTimeout(function(){goTo('home');}, 1600);
+}
+
+var voiceActive = false;
+var voiceExamples = [
+  'Parsed: ₹200 → Transport (auto rickshaw)',
+  'Parsed: ₹450 → Food (lunch)',
+  'Parsed: ₹1,200 → Shopping (clothes)',
+  'Parsed: ₹80 → Transport (metro)'
+];
+function triggerVoice() {
+  if (voiceActive) return;
+  voiceActive = true;
+  var btn = document.getElementById('voice-btn');
+  var txt = document.getElementById('voice-text');
+  btn.classList.add('voice-listening');
+  txt.textContent = 'Listening… speak now';
+  setTimeout(function(){
+    var result = voiceExamples[Math.floor(Math.random() * voiceExamples.length)];
+    txt.textContent = result;
+    btn.classList.remove('voice-listening');
+    setTimeout(function(){
+      txt.textContent = 'Say it — "Spent 200 on auto rickshaw"';
+      voiceActive = false;
+    }, 2500);
+  }, 1800);
+}
+
+var ocrData = [
+  {merchant:'Swiggy — Burger King', amount:'₹349', cat:'🍔 Food & Delivery'},
+  {merchant:'Zomato — Biryani House', amount:'₹520', cat:'🍔 Food & Delivery'},
+  {merchant:'Amazon — USB Cable', amount:'₹299', cat:'🛍️ Shopping'},
+  {merchant:'Ola Cab', amount:'₹185', cat:'🚕 Transport'},
+  {merchant:'BESCOM Electricity', amount:'₹642', cat:'⚡ Utilities'},
+];
+function simulateOCR(input) {
+  if (!input.files || !input.files[0]) return;
+  var data = ocrData[Math.floor(Math.random() * ocrData.length)];
+  document.getElementById('ocr-merchant').textContent = data.merchant;
+  document.getElementById('ocr-amount').textContent = data.amount;
+  document.getElementById('ocr-date').textContent = new Date().toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+  document.querySelector('#ocr-result .ocr-field:nth-child(5) .ocr-val').innerHTML = data.cat;
+  document.getElementById('ocr-result').classList.add('visible');
+  showToast('✓ Receipt scanned successfully!');
+}
+function confirmOCR() {
+  var merchant = document.getElementById('ocr-merchant').textContent;
+  var amount = document.getElementById('ocr-amount').textContent;
+  document.getElementById('ocr-result').classList.remove('visible');
+  document.getElementById('file-input').value = '';
+  showToast('✓ ' + merchant + ' ' + amount + ' added!');
+  var list = document.getElementById('txn-list');
+  var firstHeader = list.querySelector('.txn-date-header');
+  var txnHTML = '<div class="txn-item"><div class="txn-cat-icon" style="background:rgba(255,107,107,0.12)">📷</div><div class="txn-info"><div class="txn-name">' + merchant + '</div><div class="txn-meta">Food &amp; Delivery · <span class="txn-source-badge">📷 Screenshot</span></div></div><div class="txn-amt debit">−' + amount + '</div></div>';
+  if (firstHeader) firstHeader.insertAdjacentHTML('afterend', txnHTML);
+  setTimeout(function(){goTo('txns');}, 1400);
+}
+
+function openPennyModal() {
+  document.getElementById('penny-modal').classList.add('open');
+}
+function closePennyModal(e) {
+  if (!e || e.target === document.getElementById('penny-modal')) {
+    document.getElementById('penny-modal').classList.remove('open');
+  }
+}
+function setPennyOutfit(emoji) {
+  document.getElementById('penny-main').textContent = emoji;
+  document.getElementById('penny-modal').classList.remove('open');
+  showToast('Penny is now wearing ' + emoji + '!');
+}
+
+function filterChip(el) {
+  document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
